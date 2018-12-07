@@ -1,0 +1,30 @@
+# encoding: utf-8
+import os
+import re
+import sys
+
+web_path = r'./web/'
+re_waf = r"==CTF==(.*)//==CTF=="
+file_list = []
+for sub_dirs in os.walk(web_path):
+    for filename in sub_dirs[2]:
+        if '.php' == filename[-4:]:
+            file_list.append(os.path.join(sub_dirs[0] + '/' + filename))
+
+for filename in file_list:
+    filename = u'%s' % filename
+    try:
+        with open(filename,'r') as fp:
+            php_file_content = fp.read()
+            fp.close()
+        result = re.findall(re_waf,php_file_content,re.DOTALL)
+        for line in result:
+            php_file_content = php_file_content.replace(line,'')
+        with open(filename, 'w') as fp:
+            fp.write(php_file_content)
+            fp.close()
+    except Exception, e:
+        pass
+    
+
+print 'done'
