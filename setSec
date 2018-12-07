@@ -1,0 +1,62 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import re
+import os
+
+content_waf = '''<?php
+//==CTF==
+if(preg_match("/select\\b|insert\\b|union\\b|\.\.\/|hex\\b|update\\b|drop\\b|delete\\b|dumpfile\\b|outfile\\b|load_file|rename\\b|floor\(|extractvalue|updatexml|name_const|multipoint\(/i", {0})){{
+    {1} = "hello";
+}}
+//==CTF==
+?>'''
+
+def get_content(path):
+    return open(path).read()
+
+def find_arg(content, arg):
+    p = re.compile(r'\$' + arg + '\[[\'"]\w+[\'"]\]')
+    return list(set(p.findall(content)))
+
+def get_all(root, arg):
+    all = []
+    result = os.walk(root)
+    for path,d,filelist in result:
+        for file in filelist:
+            if file.endswith(".php"):#如果结尾是php
+                full_path = path + "/" + file
+                content = get_content(full_path)
+                all.append((full_path, find_arg(content, arg)))
+    return all
+
+def setSec(allReq):
+    for list in allReq:
+        if(list[1]):
+            setWaf(list)
+
+def setWaf(list):
+    for input in list[1]:
+        with open(list[0], 'r') as fr:
+            php_file_content = fr.read()
+            fr.close()
+        with open(list[0], 'w') as fp:
+            add_waf = content_waf.format(input,input)
+            #print add_waf
+            fp.write(add_waf + '\r\n' + php_file_content)
+            fp.close()
+
+def main():
+    root = "./web"
+    r_GET = get_all(root, "_GET")
+    r_POST = get_all(root, "_POST")
+    r_COOKIE = get_all(root, "_COOKIE")
+    r_REQUEST = get_all(root,"_REQUEST")
+    setSec(r_GET)
+    setSec(r_POST)
+    setSec(r_COOKIE)
+    setSec(r_REQUEST)
+    
+
+if __name__ == "__main__":
+    main()
